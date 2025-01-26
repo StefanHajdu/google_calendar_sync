@@ -59,6 +59,7 @@ def parse_html_response(html, **kwargs):
                         "attendees": [
                             {"email": "stehajx@gmail.com"},
                             {"email": "anndreyca@gmail.com"},
+                            {"email": "stevo.hajdu006@gmail.com"},
                         ],
                         "colorId": f"{value[1]}",
                     }

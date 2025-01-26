@@ -1,6 +1,9 @@
 import datetime
 import os.path
 
+import time
+from tenacity import retry, wait_random_exponential, retry_if_exception_type
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -54,24 +57,52 @@ def list_upcomming_n_events(n):
 
         if not events:
             print("No upcoming events found.")
-            return
+            return []
+
+        return events
 
         # Prints the start and name of the next n events
         for event in events:
             start = event["start"].get("dateTime", event["start"].get("date"))
+            print(event)
             print(start, event["summary"])
+            print()
 
     except HttpError as error:
         print(f"An error occurred: {error}")
 
 
 def insert_calendar_events(calendar_events):
-    try:
-        service = build("calendar", "v3", credentials=creds)
 
-        for e in calendar_events:
-            created_e = service.events().insert(calendarId="primary", body=e).execute()
-            print(f"Event created: {created_e.get('htmlLink')}")
+    @retry(
+        retry=retry_if_exception_type(HttpError),
+        wait=wait_random_exponential(multiplier=1, max=60),
+    )
+    def import_event(e):
+        created_e = service.events().insert(calendarId="primary", body=e).execute()
+        print(f"Event created: {created_e.get('htmlLink')}")
 
-    except HttpError as err:
-        print(f"An error occurred: {err}")
+    service = build("calendar", "v3", credentials=creds)
+    for e in calendar_events:
+        import_event(e)
+
+
+def detele_events():
+
+    @retry(
+        retry=retry_if_exception_type(HttpError),
+        wait=wait_random_exponential(multiplier=1, max=60),
+    )
+    def delete_event(e):
+        service.events().delete(
+            calendarId="primary", eventId=f"{e["id"]}", sendNotifications=False
+        ).execute()
+        print("Zber deleted")
+
+    events = list_upcomming_n_events(150)
+    print(len(events))
+
+    service = build("calendar", "v3", credentials=creds)
+    for e in events:
+        if e["summary"].startswith("Zber"):
+            delete_event(e)

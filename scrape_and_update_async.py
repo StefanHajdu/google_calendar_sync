@@ -3,7 +3,8 @@ import asyncio
 import aiohttp
 
 from parse_html import parse_html_response
-from google_calendar_apis import insert_calendar_events
+
+from google_calendar_apis import insert_calendar_events, detele_events
 from config import urls, YEAR
 
 
@@ -38,6 +39,8 @@ async def main():
 
     end = time.time()
     print(f"executed in: {end - start}")
+
+    print(calendar_events)
 
     print("Calendar events gathered, pushing to Google API:")
     insert_calendar_events(sum(calendar_events, []))
